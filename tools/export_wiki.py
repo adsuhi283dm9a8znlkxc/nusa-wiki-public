@@ -184,9 +184,30 @@ def main():
         js=soup.new_tag('script',src='assets/static.js',defer=''); soup.body.append(js)
         content=soup.select_one('.mw-parser-output')
         text=content.get_text(' ',strip=True) if content else title
+        summary=''
+        portrait=None
+        redirect=soup.select_one('.redirectMsg a[href]')
+        if content:
+            for paragraph in content.find_all('p',recursive=False):
+                paragraph=BeautifulSoup(str(paragraph),'html.parser')
+                for note in paragraph.select('sup.reference, .shortdescription'): note.decompose()
+                lead=paragraph.get_text(' ',strip=True)
+                if len(lead)>40:
+                    summary=lead
+                    break
+            portrait=content.select_one('table.infobox img')
+            if not portrait:
+                portrait=next((image for image in content.select('img') if int(image.get('width','0'))>=120 and int(image.get('height','0'))>=100),None)
+        preview_image=None
+        if portrait:
+            preview_image=portrait.get('src')
+            if portrait.get('srcset'): preview_image=portrait['srcset'].split(',')[-1].strip().split()[0]
         rendered=scrub(str(soup),name)
         (SITE/name).write_text(rendered,encoding='utf-8')
-        with lock: index.append({'title':title,'url':name,'text':scrub(text,name)[:35000]})
+        entry={'title':title,'url':name,'namespace':p['ns'],'text':scrub(text,name)[:35000],'summary':scrub(summary,name)[:600]}
+        if preview_image: entry['image']=preview_image
+        if redirect: entry['redirect']=redirect['href'].split('#')[0]
+        with lock: index.append(entry)
         return name
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
         for i,name in enumerate(pool.map(export,pages),1):

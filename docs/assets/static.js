@@ -44,11 +44,44 @@ if(results){
  for(const hit of hits){const box=document.createElement('div');box.className='static-search-item';const a=document.createElement('a');a.href=hit.url;a.textContent=hit.title;const h=document.createElement('h3');h.append(a);const excerpt=document.createElement('p');const start=Math.max(0,hit.text.toLocaleLowerCase().indexOf(terms[0])-70);excerpt.textContent=hit.text.slice(start,start+260)+'…';box.append(h,excerpt);results.append(box)}
  }).catch(()=>status.textContent='Search could not load. Please try again.');
 }
-let timer,preview;
-function clearPreview(){clearTimeout(timer);if(preview){preview.remove();preview=null}}
+let timer,preview,activeLink;
+function clearPreview(){
+ clearTimeout(timer);
+ if(activeLink)activeLink.removeAttribute('aria-describedby');
+ activeLink=null;
+ if(preview){preview.remove();preview=null}
+}
+function startPreview(link){
+ clearPreview();activeLink=link;
+ timer=setTimeout(async()=>{
+  try{
+   const index=await getIndex();
+   if(activeLink!==link||!link.matches(':hover,:focus'))return;
+   let page=index.find(p=>p.url===link.getAttribute('href').split('#')[0]);
+   for(let count=0;page&&page.redirect&&count<5;count++)page=index.find(p=>p.url===page.redirect);
+   if(!page||page.namespace!==0||!page.summary)return;
+   preview=document.createElement('div');preview.className='static-preview';preview.id='static-link-preview';preview.setAttribute('role','tooltip');
+   const body=document.createElement('div');body.className='static-preview-body';
+   const title=document.createElement('strong');title.textContent=page.title;
+   const text=document.createElement('span');text.textContent=page.summary.length>320?page.summary.slice(0,317).replace(/\s+\S*$/,'')+'…':page.summary;
+   body.append(title,text);preview.append(body);
+   if(page.image&&/^assets\/[a-zA-Z0-9.-]+$/.test(page.image)){
+    const image=document.createElement('img');image.src=page.image;image.alt='';image.width=180;image.height=180;preview.classList.add('has-image');preview.append(image);
+    const card=preview;image.addEventListener('error',()=>{image.remove();card.classList.remove('has-image')},{once:true});
+   }
+   document.body.append(preview);link.setAttribute('aria-describedby',preview.id);
+   const rect=link.getBoundingClientRect(),height=preview.offsetHeight,width=preview.offsetWidth;
+   preview.style.left=Math.max(8,Math.min(rect.left,innerWidth-width-8))+'px';
+   const below=rect.bottom+8;
+   preview.style.top=Math.max(8,Math.min(below+height<=innerHeight-8?below:rect.top-height-8,innerHeight-height-8))+'px';
+  }catch(e){if(activeLink===link)clearPreview()}
+ },450);
+}
 document.querySelectorAll('.mw-parser-output a[href^="page-"]').forEach(link=>{
- link.addEventListener('mouseenter',()=>{timer=setTimeout(async()=>{const index=await getIndex();const page=index.find(p=>p.url===link.getAttribute('href').split('#')[0]);if(!page||!link.matches(':hover'))return;clearPreview();preview=document.createElement('div');preview.className='static-preview';const title=document.createElement('strong');title.textContent=page.title;const text=document.createElement('span');text.textContent=page.text.slice(0,240)+'…';preview.append(title,text);document.body.append(preview);const rect=link.getBoundingClientRect();preview.style.left=Math.max(8,Math.min(rect.left,innerWidth-350))+'px';preview.style.top=Math.max(8,Math.min(rect.bottom+8,innerHeight-preview.offsetHeight-8))+'px'},450)});
- link.addEventListener('mouseleave',clearPreview);link.addEventListener('focusout',clearPreview);
+ if(link.closest('sup.reference,.mw-editsection')||link.classList.contains('mw-file-description'))return;
+ link.addEventListener('mouseenter',()=>startPreview(link));link.addEventListener('focus',()=>startPreview(link));
+ link.addEventListener('mouseleave',clearPreview);link.addEventListener('focusout',clearPreview);link.addEventListener('click',clearPreview);
 });
-window.addEventListener('scroll',clearPreview,{passive:true});
+document.addEventListener('keydown',event=>{if(event.key==='Escape')clearPreview()});
+window.addEventListener('scroll',clearPreview,{passive:true});window.addEventListener('resize',clearPreview);
 })();
