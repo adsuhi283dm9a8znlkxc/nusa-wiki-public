@@ -1,1 +1,1 @@
-.nusa-officeholder td > p:has(> br:only-child){display:none}@media (max-width:700px){.mw-parser-output .nusa-officeholder{float:none !important;clear:both !important;width:100% !important;margin:0 0 1.25em 0 !important;box-sizing:border-box}}
+.nusa-officeholder caption > p:has(> br:only-child),.nusa-officeholder td > p:has(> br:only-child){display:none}@media (max-width:700px){.mw-parser-output .nusa-officeholder{float:none !important;clear:both !important;width:100% !important;margin:0 0 1.25em 0 !important;box-sizing:border-box}}
