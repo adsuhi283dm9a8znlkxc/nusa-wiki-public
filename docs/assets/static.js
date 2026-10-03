@@ -16,9 +16,12 @@ if(appearance){
  appearance.querySelectorAll('input').forEach(input=>{const name=input.name.replace('static-','');try{if(localStorage.getItem('static-wiki-'+name)===input.value)input.checked=true}catch(e){}input.addEventListener('change',()=>preference(name,input.value))});
 }
 // MediaWiki renders menu checkboxes; preserve their accessible native behavior.
-document.querySelectorAll('.vector-toc-collapse-button').forEach(button=>button.addEventListener('click',()=>{
- const item=button.closest('li');const list=item&&item.querySelector('ul');if(list){list.hidden=!list.hidden;button.setAttribute('aria-expanded',String(!list.hidden))}
+document.querySelectorAll('.vector-toc-collapse-button,.vector-toc-toggle').forEach(button=>button.addEventListener('click',()=>{
+ const item=button.closest('li');const list=item&&item.querySelector('ul');if(list){const expanded=!item.classList.contains('vector-toc-list-item-expanded');item.classList.toggle('vector-toc-list-item-expanded',expanded);list.hidden=!expanded;button.setAttribute('aria-expanded',String(expanded))}
 }));
+const toc=document.querySelector('#vector-toc');const tocHome=toc&&toc.parentElement;
+const mobileToc=document.querySelector('#vector-page-titlebar-toc-checkbox');
+if(toc&&mobileToc){mobileToc.addEventListener('change',()=>{const popup=mobileToc.closest('.vector-dropdown').querySelector('.vector-dropdown-content');if(mobileToc.checked&&popup)popup.append(toc);else tocHome.append(toc)});toc.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{if(mobileToc.checked){mobileToc.checked=false;tocHome.append(toc)}}))}
 document.querySelectorAll('.vector-pinnable-header-toggle-button').forEach(button=>button.addEventListener('click',()=>{
  const panel=button.closest('#vector-toc,#vector-main-menu,#vector-appearance');if(!panel)return;
  const inner=[...panel.children].filter(el=>!el.classList.contains('vector-pinnable-header'));

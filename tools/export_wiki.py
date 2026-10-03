@@ -171,6 +171,8 @@ def main():
             form['action']='search.html'; form['method']='get'
             for hidden in form.select('input[type="hidden"]'): hidden.decompose()
             for inp in form.select('input[type="search"], input[name="search"]'): inp['name']='q'
+        for toggle in soup.select('.search-toggle'):
+            toggle['href']='search.html'; toggle.attrs.pop('aria-disabled',None);toggle['title']='Search nUSA Wiki'
         # Keep Vector's rendered class settings, without server-dependent startup code.
         classes=soup.html.get('class',[])
         soup.html['class']=[('client-js' if c=='client-nojs' else c) for c in classes]
@@ -202,6 +204,9 @@ def main():
     template.title.string='Search — nUSA Wiki'
     template.select_one('#firstHeading').string='Search'
     main=template.select_one('#mw-content-text'); main.clear()
+    form=template.new_tag('form',action='search.html',method='get')
+    inp=template.new_tag('input',type='search',name='q',placeholder='Search nUSA Wiki')
+    inp['aria-label']='Search nUSA Wiki';button=template.new_tag('button',type='submit');button.string='Search';form.append(inp);form.append(button);main.append(form)
     div=template.new_tag('div',id='static-search-results'); main.append(div)
     (SITE/'search.html').write_text(str(template),encoding='utf-8')
     template.title.string='All pages — nUSA Wiki'

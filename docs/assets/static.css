@@ -17,3 +17,8 @@
 #vector-appearance legend{font-size:14px;color:var(--color-subtle,#54595d);padding:0;margin-bottom:6px}
 #vector-appearance label{display:inline-block;font-size:14px;margin-bottom:5px}
 #vector-appearance input{margin-right:6px}
+#mw-content-text>form{display:flex;gap:8px;margin:16px 0}
+#mw-content-text>form input{min-width:0;flex:1;padding:8px;font:inherit}
+#mw-content-text>form button{padding:8px 14px;font:inherit}
+#vector-page-titlebar-toc .vector-dropdown-content{max-height:70vh;overflow:auto}
+#vector-page-titlebar-toc .vector-dropdown-content #vector-toc{display:block;visibility:visible;padding:12px}
