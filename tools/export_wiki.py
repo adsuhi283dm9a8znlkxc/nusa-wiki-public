@@ -23,6 +23,10 @@ ASSETS = SITE / 'assets'
 lock = threading.RLock()
 asset_map = {}
 redactions = []
+privacy = json.loads((LOCAL/'privacy.json').read_text(encoding='utf-8'))
+privacy_rules = privacy['redactions']
+if not privacy_rules or any(not rule.get('term') or not isinstance(rule.get('replacement'),str) for rule in privacy_rules):
+    raise ValueError('Configure private redaction terms in .local/privacy.json before exporting.')
 bad_path = re.compile(r'(?i)(?:(?<![\w])[a-z]:[\\/](?!/)(?:[^\s<>"\'|\]\[{}]+)|file:[/][/][A-Za-z0-9][^\s<>"\']*|/(?:home|Users)/[^\s<>"\']+)')
 
 def fetch(url):
@@ -49,9 +53,9 @@ def scrub(text, label):
         return '[local archive]'
     text=bad_path.sub(replace,text)
     text=re.sub(r'(?i)(?:source-archive|research)[/\\][^\s<>"\'|]+','[archived source]',text)
-    private_name=json.loads((ROOT/'.local/privacy.json').read_text(encoding='utf-8'))['redactions'][-1]['term']
-    text=re.sub('Dork'+private_name,'[name withheld]',text,flags=re.I)
-    return re.sub(private_name,'J.',text,flags=re.I)
+    for rule in sorted(privacy_rules,key=lambda rule:len(rule['term']),reverse=True):
+        text=re.sub(re.escape(rule['term']),lambda match:rule['replacement'],text,flags=re.I)
+    return text
 
 def asset(url):
     url=canonical(url)

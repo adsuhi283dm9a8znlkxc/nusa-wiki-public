@@ -1,32 +1,21 @@
-# nUSA Wiki — static edition
+# nUSA Wiki
 
-A static export of nUSA Wiki, preserving the MediaWiki Vector 2022 reading layout,
-articles, categories, citations, uploaded documents, and images. Search and article
-previews run in the browser. Editing, accounts, and revision history remain on the
-source MediaWiki installation.
+A detailed history of nUSA, presented in a Wikipedia-style encyclopedia. Explore its presidents, public figures, elections, institutions, laws, and major events, with references, historical documents, and portraits throughout.
 
-## Update and publish
+[Read the wiki online](https://adsuhi283dm9a8znlkxc.github.io/nusa-wiki-public/)
 
-Start the source wiki on its usual local port, then run **Export Wiki.cmd**.
-Review the export using a local HTTP server, then run **Publish Wiki.cmd**.
-Successful pushes to `main` publish the `docs` directory through GitHub Pages.
+## Read it on your computer
 
-Install export/check dependencies with `python -m pip install -r requirements.txt`.
-The source wiki database, private research archives, and server configuration are
-never copied. This repository has its own Git history and account credentials.
+1. Click **Code → Download ZIP** above, then unzip the download.
+2. Install [Python](https://www.python.org/downloads/) if you don't already have it.
+3. Open a terminal in the downloaded folder and run:
 
-## Publication checks
+   ```sh
+   python -m http.server 8000 --bind 127.0.0.1 --directory docs
+   ```
 
-The security checker allows only the website and the listed export/publish tools.
-It rejects computer paths, encoded paths, private network URLs in the website,
-credential patterns, unexpected files, unapproved scripts, missing local assets,
-image/PDF metadata, and oversized uploads. Git hooks check staged files before
-commit and committed files before push. Local inventories and reports are stored
-in the ignored `.local` directory.
+4. Open **http://localhost:8000** in your browser. Keep the terminal open while reading; press **Ctrl+C** when you're finished.
 
-`AGENTS.md` and `.local` are ignored and must never be published. The only permitted
-push destination is the dedicated repository owned by `adsuhi283dm9a8znlkxc`.
-Credentials are configured locally; they are never committed.
+On Windows, you can use `py` instead of `python`. On macOS or Linux, use `python3` if needed.
 
-The automated scanner does not detect arbitrary sensitive text inside an image.
-Review new image and document uploads visually before publishing future exports.
+Search, link previews, and the reading controls work locally. You don't need an account or the original wiki software to browse this copy.

@@ -1,5 +1,6 @@
 """Fail closed on unexpected tracked files, private paths, secrets, or broken assets."""
 import argparse
+import base64
 import hashlib
 import ipaddress
 import json
@@ -18,7 +19,11 @@ TEXT_EXT={'.html','.css','.js','.json','.svg','.md','.txt','.py','.ps1','.cmd'}
 PATH_PATTERN=re.compile(r'(?i)(?:(?<![\w])[a-z]:[\\/](?!/)[^\s<>"\'|\]\[{}]+|file:[/][/][A-Za-z0-9][^\s<>"\']*|/(?:home|Users)/[A-Za-z0-9_.-]+/|\\\\[A-Za-z0-9_.-]+\\)')
 SECRET_PATTERN=re.compile(r'(?i)(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|-----BEGIN (?:RSA |OPENSSH |EC )?PRIVATE KEY-----)')
 PRIVATE_HOST=re.compile(r'(?i)(?:https?:)?//(?:localhost|127\.0\.0\.1|0\.0\.0\.0|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+)(?=[:/\s"\'])')
-PRIVATE_NAME=json.loads((ROOT/'.local/privacy.json').read_text(encoding='utf-8'))['redactions'][-1]['term']
+privacy=json.loads((ROOT/'.local/privacy.json').read_text(encoding='utf-8'))
+PRIVATE_TERMS=[rule['term'] for rule in privacy['redactions']]
+if not PRIVATE_TERMS or any(not isinstance(term,str) or not term for term in PRIVATE_TERMS):
+    raise ValueError('Configure private redaction terms in .local/privacy.json before checking.')
+PRIVATE_MARKERS={value.casefold() for term in PRIVATE_TERMS for value in (term,term.encode().hex(),base64.b64encode(term.encode()).decode())}
 ARCHIVE_PATH=re.compile(r'(?i)(?:source-archive|research)[/\\][A-Za-z0-9_.-]+')
 
 def git(*args): return subprocess.check_output(['git',*args],cwd=ROOT)
@@ -45,7 +50,7 @@ def main():
             text=raw.decode('utf-8',errors='replace')
             variants=[text,urllib.parse.unquote(urllib.parse.unquote(text)),text.replace('\\\\','\\'),text.replace('\\u005c','\\').replace('\\u002f','/')]
             if any(PATH_PATTERN.search(v) for v in variants): errors.append({'file':name,'reason':'computer file path'})
-            if any(PRIVATE_NAME in v.casefold() for v in variants): errors.append({'file':name,'reason':'forbidden personal name'})
+            if any(marker in v.casefold() for v in variants for marker in PRIVATE_MARKERS): errors.append({'file':name,'reason':'private term or encoded private term'})
             if name.startswith('docs/') and ARCHIVE_PATH.search(text): errors.append({'file':name,'reason':'private archive path'})
             if SECRET_PATTERN.search(text): errors.append({'file':name,'reason':'credential or private key'})
             if name.startswith('docs/') and PRIVATE_HOST.search(text): errors.append({'file':name,'reason':'private network or local-server URL'})
@@ -62,7 +67,7 @@ def main():
             if any(doc.metadata.get(k) for k in ('title','author','subject','keywords','creator','producer','creationDate','modDate')) or doc.get_xml_metadata() or doc.embfile_count():
                 errors.append({'file':name,'reason':'PDF metadata or attachment'})
             for p in doc:
-                if PATH_PATTERN.search(p.get_text()) or PRIVATE_NAME in p.get_text().casefold(): errors.append({'file':name,'reason':'private name or computer path in PDF text'})
+                if PATH_PATTERN.search(p.get_text()) or any(marker in p.get_text().casefold() for marker in PRIVATE_MARKERS): errors.append({'file':name,'reason':'private term or computer path in PDF text'})
                 for link in p.get_links():
                     if link.get('kind') in (fitz.LINK_LAUNCH,fitz.LINK_GOTOR) or PATH_PATTERN.search(link.get('uri','')):
                         errors.append({'file':name,'reason':'local PDF link'})
