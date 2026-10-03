@@ -205,7 +205,7 @@ def main():
     template.select_one('#firstHeading').string='Search'
     main=template.select_one('#mw-content-text'); main.clear()
     form=template.new_tag('form',action='search.html',method='get')
-    inp=template.new_tag('input',type='search',name='q',placeholder='Search nUSA Wiki')
+    inp=template.new_tag('input',attrs={'type':'search','name':'q','placeholder':'Search nUSA Wiki'})
     inp['aria-label']='Search nUSA Wiki';button=template.new_tag('button',type='submit');button.string='Search';form.append(inp);form.append(button);main.append(form)
     div=template.new_tag('div',id='static-search-results'); main.append(div)
     (SITE/'search.html').write_text(str(template),encoding='utf-8')
