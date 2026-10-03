@@ -5,6 +5,7 @@ import io
 import ipaddress
 import json
 import re
+import shutil
 import threading
 import urllib.parse
 import urllib.request
@@ -99,6 +100,16 @@ def asset(url):
 def title_key(s): return s.replace('_',' ').strip()
 
 def main():
+    global SITE, ASSETS
+    # Build privately first; never carry old assets into a new published export.
+    published=ROOT/'docs'; staging=LOCAL/'export-staging'; previous=LOCAL/'previous-export'
+    for folder in (staging,previous):
+        if folder.resolve().parent != LOCAL.resolve(): raise ValueError('Unsafe export directory')
+    if staging.exists(): shutil.rmtree(staging)
+    (staging/'assets').mkdir(parents=True)
+    for filename in ('static.css','static.js'):
+        shutil.copy2(published/'assets'/filename,staging/'assets'/filename)
+    SITE=staging; ASSETS=staging/'assets'
     ASSETS.mkdir(parents=True,exist_ok=True); LOCAL.mkdir(exist_ok=True)
     ns=api(action='query',meta='siteinfo',siprop='namespaces')['query']['namespaces']
     pages=[]
@@ -205,6 +216,12 @@ def main():
     (SITE/'.nojekyll').write_text('')
     report={'pages':len(pages),'asset_count':len(asset_map),'asset_map':asset_map,'redactions':redactions,'files':files}
     (LOCAL/'export-report.json').write_text(json.dumps(report,indent=2,ensure_ascii=False),encoding='utf-8')
+    if previous.exists(): shutil.rmtree(previous)
+    published.rename(previous)
+    try: staging.rename(published)
+    except Exception:
+        previous.rename(published)
+        raise
     print('Export finished:',len(pages),'pages;',len(asset_map),'assets;',len(redactions),'path redactions',flush=True)
 
 if __name__=='__main__': main()
